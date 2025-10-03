@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>星空カーテンと雪</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    canvas {
+      background: #222;
+      max-width: 100%;
+      height: auto;
+      box-shadow: 0 0 20px #000;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <script>
+    const canvas = document.getElementById("scene");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+      canvas.width = Math.min(window.innerWidth * 0.9, 600);
+      canvas.height = Math.min(window.innerHeight * 0.9, 400);
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    let curtainLeft = { x: 0, width: canvas.width / 4 };
+    let curtainRight = { x: canvas.width - canvas.width / 4, width: canvas.width / 4 };
+    let phase = "closed";
+    let stars = [];
+    let snowflakes = [];
+
+    for (let i = 0; i < 100; i++) {
+      stars.push({
+        x: canvas.width / 3 + Math.random() * canvas.width / 3,
+        y: canvas.height * 0.1 + Math.random() * canvas.height * 0.8,
+        alpha: Math.random(),
+        speed: Math.random() * 0.02 + 0.01
+      });
+    }
+
+    for (let i = 0; i < 80; i++) {
+      const isSirius = Math.random() < 0.2;
+      snowflakes.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: isSirius ? 4 + Math.random() * 2 : 1 + Math.random() * 1.5,
+        alpha: Math.random(),
+        speedY: isSirius ? 0.5 + Math.random() : 0.3 + Math.random(),
+        glow: isSirius,
+        speedAlpha: Math.random() * 0.02 + 0.01
+      });
+    }
+
+    canvas.addEventListener("click", () => {
+      if (phase === "closed") phase = "opening";
+      else if (phase === "open") phase = "closing";
+    });
+
+    function drawRoom() {
+      ctx.fillStyle = "#444";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#222";
+      ctx.fillRect(0, canvas.height * 0.85, canvas.width, canvas.height * 0.15);
+      ctx.fillStyle = "#000";
+      ctx.fillRect(canvas.width / 3, canvas.height * 0.1, canvas.width / 3, canvas.height * 0.8);
+    }
+
+    function drawStars() {
+      stars.forEach(star => {
+        ctx.fillStyle = `rgba(255,255,255,${star.alpha})`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+        star.alpha += star.speed;
+        if (star.alpha > 1 || star.alpha < 0) star.speed *= -1;
+      });
+    }
+
+    function drawCurtains() {
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(curtainLeft.x, 0, curtainLeft.width, canvas.height);
+      ctx.fillRect(curtainRight.x, 0, curtainRight.width, canvas.height);
+      ctx.globalAlpha = 1.0;
+    }
+
+    function updateCurtains() {
+      const speed = 2;
+      if (phase === "opening") {
+        curtainLeft.x -= speed;
+        curtainRight.x += speed;
+        if (curtainLeft.x <= -curtainLeft.width) phase = "open";
+      } else if (phase === "closing") {
+        curtainLeft.x += speed;
+        curtainRight.x -= speed;
+        if (curtainLeft.x >= 0) phase = "closed";
+      }
+    }
+
+    function drawSnow() {
+      snowflakes.forEach(snow => {
+        if (snow.glow) {
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = "white";
+        } else {
+          ctx.shadowBlur = 0;
+        }
+        ctx.fillStyle = `rgba(255,255,255,${snow.alpha})`;
+        ctx.beginPath();
+        ctx.arc(snow.x, snow.y, snow.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        snow.y += snow.speedY;
+        snow.alpha += snow.speedAlpha;
+        if (snow.alpha > 1 || snow.alpha < 0) snow.speedAlpha *= -1;
+
+        if (snow.y > canvas.height) snow.y = 0;
+      });
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawRoom();
+      drawSnow();
+      if (phase === "open") drawStars();
+      drawCurtains();
+      updateCurtains();
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
